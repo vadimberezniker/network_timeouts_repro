@@ -1,6 +1,6 @@
 Build the binary first (the name MUST be `repro`):
 ```
-go build main.go -o repro
+go build -o repro
 ```
 
 Run the repro. Must be run as root to manipulate network namespaces.
