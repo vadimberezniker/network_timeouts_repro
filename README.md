@@ -1,3 +1,10 @@
+Build the binary first (the name MUST be `repro`):
+```
+go build main.go -o repro
+```
+
+Run the repro. Must be run as root to manipulate network namespaces.
+
 ```
 sudo ./repro --subnet 10.100.0.0/16
 ```
