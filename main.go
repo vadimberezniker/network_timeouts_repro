@@ -23,9 +23,14 @@ var (
 	target      = flag.String("target", "http://23.176.168.2:9000", "target URL")
 	n           = flag.Int("n", 1000, "Number of sequential http requests per goroutine")
 	concurrency = flag.Int("concurrency", 30, "Number of concurrent goroutines to run")
-	routines    = flag.Int("routines", 100, "total number of goroutines to start")
 
 	subnet = flag.String("subnet", "", "subnet for client IPs")
+
+	cleanup = flag.Bool("cleanup", false, "If true, cleanup network namespaces and veth devices instead of running repro.")
+)
+
+const (
+	routines = 100
 )
 
 var (
@@ -137,23 +142,9 @@ func main() {
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(*concurrency)
 
-	//go func() {
-	//	for {
-	//		select {
-	//		case <-egCtx.Done():
-	//			return
-	//		case <-time.After(5 * time.Second):
-	//		}
-	//		mu.Lock()
-	//		log.Printf("requests sent %d, failed requests %d", totalRequests, failedRequests)
-	//		mu.Unlock()
-	//
-	//	}
-	//}()
-
 	ip := ipnet.IP
 
-	for i := range *routines {
+	for i := range routines {
 		i := i
 		ip[3]++
 		nsMaskedIP := ip.String() + "/30"
@@ -170,6 +161,16 @@ func main() {
 
 		ns := fmt.Sprintf("repro_%d", i)
 		hostIntf := fmt.Sprintf("vethhostrepro%d", i)
+		if *cleanup {
+			if out, err := run(ctx, "ip", "netns", "delete", ns); err != nil {
+				log.Printf("Could not cleanup network namespace %q: %s\n%s", ns, err, out)
+			}
+			if out, err := run(ctx, "ip", "link", "del", hostIntf); err != nil {
+				log.Printf("Could not cleanup veth device %q: %s\n%s", hostIntf, err, out)
+			}
+			continue
+		}
+
 		out, err := run(ctx, "ip", "netns", "add", ns)
 		if err != nil && !strings.Contains(out, "File exists") {
 			log.Fatalf("cmd failed: %s", err)
