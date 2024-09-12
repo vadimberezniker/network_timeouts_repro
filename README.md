@@ -1,3 +1,5 @@
+The test machine must have ip forwarding & NAT enabled as the repro uses private IPs to send traffic to an external endpoint.
+
 Build the binary first (the name MUST be `repro`):
 ```
 go build -o repro
